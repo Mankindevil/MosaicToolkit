@@ -1,0 +1,18 @@
+# Generated programs and packages
+*.exe
+*.dll
+*.pdb
+*.zip
+/output/
+/profiles/
+/test-output/
+/release/
+/release-v*/
+/publish/
+/Unity运行时检查工具/
+/last-error.txt
+/session/
+*.tmp
+*.user
+*.suo
+.vs/

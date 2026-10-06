@@ -1,0 +1,1 @@
+{"protocol":1,"applyRules":false,"keywords":["mosaic","モザ","censor"],"rules":[{"name":"モザイク","shader":"Shader Graphs/URPMosaic","rendererType":"SkinnedMeshRenderer","path":"","enabled":true},{"name":"モザイク_1","shader":"Shader Graphs/URPMosaic","rendererType":"SkinnedMeshRenderer","path":"","enabled":true}]}

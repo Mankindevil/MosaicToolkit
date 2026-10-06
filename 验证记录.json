@@ -1,0 +1,26 @@
+{
+  "name": "Mosaic Toolkit",
+  "version": "0.1.9",
+  "scannerVersion": "0.1.9",
+  "createdDate": "2026-10-06",
+  "desktopProtocolTests": 49,
+  "winFormsTests": 55,
+  "runtimeSimulationTests": 62,
+  "targetCompile": [
+    "Dungeon of Meat DLsite v1.05",
+    "PainRein 0.103"
+  ],
+  "inGameTested": false,
+  "installedToUserGame": false,
+  "uiPreviewReviewed": true,
+  "changes": [
+    "Modeless material-details window pinned to renderer identity and session",
+    "Checkbox selection by slot index including duplicate material names",
+    "Temporary per-slot hide and restore with game acknowledgment",
+    "Exact-path per-slot rule saving with deduplication",
+    "Preserve checkbox state unless material signature changes",
+    "Reject stale object and material commands or conflicting automatic rules",
+    "Restore original material references on stop-all and plugin unload"
+  ],
+  "sha256": "B04EB8016D6FA7D75FBA54D2FECCB1A2660D3E7D2FDDB4A3FDB17CA2FEDD7BCD"
+}

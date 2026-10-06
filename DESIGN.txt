@@ -1,0 +1,26 @@
+Mosaic Toolkit v0.1 design
+Audience: Windows user inspecting Unity renderer overlays with no coding experience.
+Native WinForms desktop application, .NET Framework, no web server or Python required.
+Palette: slate #263747, paper #F4F7FA, ink #203142, blue #276BA5, muted #607487, white #FFFFFF.
+Typography: Microsoft YaHei UI 9pt controls, 16pt title, Consolas only for diagnostic text.
+Layout: left aligned; game selection at top, runtime state strip, candidate table as primary surface,
+rule table and log in separate tabs. Avoid cards, decorations and modal prompts for routine reads.
+
+[Mosaic Toolkit                 Mono / BepInEx 5]
+[Game EXE path                         Choose | Detect]
+[Detection result / connection status]
+[Install scanner | Start game | Open log | Uninstall]
+[Candidates | Saved rules | Activity]
+[Keywords                         Apply | Rescan]
+[Object / component / shader / state / full path                 ]
+[Temporary off | Restore | Save as rule | Restore all]
+[Selected candidate details                                      ]
+[Automatic rules OFF/ON | Export patch | Open output]
+
+Review: this is a diagnostic workbench; the large searchable table and explicit restoration
+controls carry the design. Hide compiler mechanics from the main flow, retain output in logs.
+Empty state tells user to install scanner, start game and enter desired scene.
+Offline detection is not presented as live renderer discovery.
+
+Scope: BepInEx 5 / Unity Mono with split Unity assemblies and .NET 4 libraries.
+IL2CPP detection only; no injection or asset patching. Existing loaders are never replaced.
