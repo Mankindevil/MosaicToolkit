@@ -2,14 +2,16 @@
 
 Windows 图形化 Unity Renderer 检查与规则工具。通过游戏内的 BepInEx 扫描插件查看对象、材质和 Shader，测试隐藏指定 Renderer 或材质槽，并保存、导出自动执行规则。
 
-**当前版本：0.1.9。支持 BepInEx 5 / Unity Mono / .NET 4；IL2CPP 目前仅识别，不支持生成插件。**
+**当前版本：0.1.10。支持 BepInEx 5 / Unity Mono / .NET 4；IL2CPP 目前仅识别，不支持生成插件。**
+
+0.1.10 修复 Unity 6000.4 中 `GetInstanceID()` 过时警告被当成错误、导致插件构建失败的问题。
 
 ## 下载与使用
 
 从 [Releases](https://github.com/Mankindevil/MosaicToolkit/releases/latest) 下载：
 
-- `MosaicToolkit-0.1.9.exe`：单文件桌面程序，内嵌插件源码。
-- `MosaicToolkit-v0.1.9.zip`：完整包，包含程序、源码、说明、预设和验证记录。
+- `MosaicToolkit-0.1.10.exe`：单文件桌面程序，内嵌插件源码。
+- `MosaicToolkit-v0.1.10.zip`：完整包，包含程序、源码、说明、预设和验证记录。
 - `SHA256SUMS.txt`：下载文件校验值。
 
 1. 先为目标游戏安装适合的 BepInEx 5，然后退出游戏。
@@ -18,7 +20,7 @@ Windows 图形化 Unity Renderer 检查与规则工具。通过游戏内的 BepI
 4. 在候选对象或全部 Renderer 中检查目标；可临时隐藏后观察效果，也可点击“生成并启用默认规则”。
 5. 混合材质对象：选中一个 Renderer，点击“材质详情”或双击对象行，按槽编号勾选并测试。
 
-**从旧版升级至 0.1.9，需要退出游戏并用新版重新安装扫描插件。只替换桌面 EXE 无法使用新增的临时材质槽指令。**
+**遇到新版 Unity 的编译失败时，请退出游戏，用 0.1.10 重新安装扫描插件。已经正常运行的旧插件不会因桌面程序升级而自动替换。**
 
 ## 功能
 
@@ -60,14 +62,16 @@ Windows 图形化 Unity Renderer 检查与规则工具。通过游戏内的 BepI
 也可以指定输出文件名：
 
 ```powershell
-.\build.ps1 -OutputName 'MosaicToolkit-0.1.9.exe'
-.\test.ps1 -ExecutableName 'MosaicToolkit-0.1.9.exe'
+.\build.ps1 -OutputName 'MosaicToolkit-0.1.10.exe'
+.\test.ps1 -ExecutableName 'MosaicToolkit-0.1.10.exe'
 ```
 
 桌面程序在生成扫描插件时，使用用户所选游戏目录中的 Unity/BepInEx 程序集作为编译引用。仓库和发行包不包含这些第三方程序集。
 
 ## 验证
 
-0.1.9 已通过 49 项桌面/协议检查、55 项 WinForms 检查、62 项运行时模拟检查，共 166 项。已使用 Dungeon of Meat DLsite v1.05 和 PainRein 0.103 的程序集成功编译扫描插件，并检查桌面及材质窗口预览。
+0.1.10 已通过 49 项桌面/协议检查、55 项 WinForms 检查、62 项运行时模拟检查，共 166 项；另在带过时标记的 API 模拟环境中重复通过 62 项运行时检查，并保留“警告视为错误”编译选项。
+
+已使用《国家の敵 ～女囚たちの告白～》（Unity 6000.4.7f1）、Dungeon of Meat DLsite v1.05 和 PainRein 0.103 的程序集成功编译扫描插件。本版界面功能沿用 0.1.9。
 
 模拟测试不执行 Unity。本版本未进行真实游戏画面或帧率验证，详情见 [验证记录](验证记录.json)。

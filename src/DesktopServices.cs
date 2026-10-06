@@ -245,12 +245,12 @@ namespace MosaicToolkit
             File.WriteAllText(Path.Combine(plugin, "toolkit-owner.txt"), Owner);
             Protocol.AtomicWrite(Path.Combine(plugin, "profile.json"), Encode(p));
             Protocol.AtomicWrite(Path.Combine(output, "MosaicToolkit", "profile.json"), Encode(p));
-            var manifest = new { toolkit = "0.1.9", scanner = "0.1.9", gameExe = g.exe, unity = g.unity, runtime = g.runtime, architecture = g.arch,
+            var manifest = new { toolkit = "0.1.10", scanner = "0.1.10", gameExe = g.exe, unity = g.unity, runtime = g.runtime, architecture = g.arch,
                 loader = g.loader, pluginSha256 = Sha(Path.Combine(plugin, "MosaicToolkit.Scanner.dll")), ruleCount = p.rules.Length,
                 applyRules = p.applyRules, gameExeSha256 = Sha(g.exe), inGameValidated = false };
             File.WriteAllText(Path.Combine(output, "manifest.json"), Encode(manifest), Encoding.UTF8);
             File.WriteAllText(Path.Combine(output, "安装说明.txt"),
-                "Mosaic Toolkit 0.1.9 / Scanner 0.1.9 / BepInEx 5 Mono\r\n目标游戏: " + g.exe +
+                "Mosaic Toolkit 0.1.10 / Scanner 0.1.10 / BepInEx 5 Mono\r\n目标游戏: " + g.exe +
                 "\r\n退出游戏，将 BepInEx 文件夹合并到游戏根目录。需要已有 BepInEx 5。\r\n" +
                 "自动规则: " + p.applyRules + "；规则数: " + p.rules.Length +
                 "\r\n按规则关闭独立 Renderer 或隐藏命中的材质槽。动态对象约每 5 秒发现一次，可能短暂显示。\r\n" +

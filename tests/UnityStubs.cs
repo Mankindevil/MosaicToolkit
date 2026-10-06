@@ -62,6 +62,9 @@ namespace UnityEngine
         public Transform transform { get { return gameObject.transform; } }
         private Material[] shared = new Material[0];
         public Material[] sharedMaterials { get { return (Material[])shared.Clone(); } set { shared = (Material[])value.Clone(); } }
+#if UNITY_INSTANCE_ID_OBSOLETE
+        [Obsolete("GetInstanceID is deprecated. Use GetEntityId instead.")]
+#endif
         public int GetInstanceID() { return id; }
     }
     public class SkinnedMeshRenderer : Renderer {}

@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 
 namespace MosaicToolkit
 {
-    [BepInPlugin("local.mosaictoolkit.scanner", "Mosaic Toolkit Scanner", "0.1.9")]
+    [BepInPlugin("local.mosaictoolkit.scanner", "Mosaic Toolkit Scanner", "0.1.10")]
     [DefaultExecutionOrder(32000)]
     public sealed class RuntimePlugin : BaseUnityPlugin
     {
@@ -52,7 +52,7 @@ namespace MosaicToolkit
             using (Process process = Process.GetCurrentProcess()) { pid = process.Id; executable = process.MainModule.FileName; }
             LoadProfile();
             ready = true;
-            Logger.LogInfo("Mosaic Toolkit Scanner 0.1.9 ready; session=" + session + "; auto rules=" + profile.applyRules + "; temporary material slots supported");
+            Logger.LogInfo("Mosaic Toolkit Scanner 0.1.10 ready; session=" + session + "; auto rules=" + profile.applyRules + "; temporary material slots supported");
         }
         private string ProfilePath { get { return Path.Combine(Path.GetDirectoryName(directory), "profile.json"); } }
         private void PersistProfile(Profile current)
@@ -145,6 +145,15 @@ namespace MosaicToolkit
             while (t.parent != null) { t = t.parent; value = t.name + "/" + value; }
             return value;
         }
+        private static int RuntimeId(Renderer renderer)
+        {
+            // Unity 6.4 retains this int API but emits CS0618. Older supported Unity
+            // versions lack GetEntityId; keep the existing session/IPC ID contract.
+            // Suppress only this compatibility call, not other compiler warnings.
+#pragma warning disable 618
+            return renderer.GetInstanceID();
+#pragma warning restore 618
+        }
         private Candidate Describe(Renderer r, Tracked tracked)
         {
             var shaders = new List<string>(); var materials = new List<string>();
@@ -159,7 +168,7 @@ namespace MosaicToolkit
                 materials.Add(mat.name);
                 if (mat.shader != null) shaders.Add(mat.shader.name);
             }
-            var c = new Candidate { id = r.GetInstanceID(), name = r.gameObject.name,
+            var c = new Candidate { id = RuntimeId(r), name = r.gameObject.name,
                 path = r.gameObject.scene.name + ":/" + FullPath(r.transform), rendererType = r.GetType().Name,
                 shaders = shaders.ToArray(), materials = materials.ToArray(), active = r.gameObject.activeInHierarchy,
                 enabled = r.enabled, originalEnabled = r.enabled, slots = slots.ToArray() };
@@ -185,7 +194,7 @@ namespace MosaicToolkit
                 Renderer r = scanItems[scanIndex++]; processed++;
                 if (r == null || !r.gameObject.scene.IsValid() || !r.gameObject.scene.isLoaded) continue;
                 Tracked old;
-                targets.TryGetValue(r.GetInstanceID(), out old);
+                targets.TryGetValue(RuntimeId(r), out old);
                 Candidate c = Describe(r, old);
                 bool same = old != null && old.renderer == r && old.info.path == c.path && old.info.name == c.name;
                 // If pooled objects change identity, restore their previous state before re-evaluating.

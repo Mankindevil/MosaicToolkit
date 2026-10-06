@@ -43,7 +43,7 @@ namespace MosaicToolkit
 
         public MainForm()
         {
-            Text = "Mosaic Toolkit 0.1.9 · Unity 遮罩检查工具";
+            Text = "Mosaic Toolkit 0.1.10 · Unity 遮罩检查工具";
             Font = new Font("Microsoft YaHei UI", 9F);
             BackColor = Color.FromArgb(244, 247, 250); ForeColor = Color.FromArgb(32, 49, 66);
             ClientSize = new Size(1180, 790); MinimumSize = new Size(950, 690);

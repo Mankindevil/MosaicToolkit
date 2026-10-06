@@ -13,3 +13,8 @@ $testExe = Join-Path $PSScriptRoot 'test-output\RuntimeTests.exe'
 if ($LASTEXITCODE -ne 0) { throw 'Runtime simulation compilation failed' }
 & $testExe | Tee-Object -FilePath (Join-Path $PSScriptRoot 'test-output\runtime-tests.txt')
 if ($LASTEXITCODE -ne 0) { throw 'Runtime simulation failed' }
+$obsoleteTestExe = Join-Path $PSScriptRoot 'test-output\RuntimeTests-ObsoleteId.exe'
+& $compiler /nologo /target:exe /warnaserror+ /define:UNITY_INSTANCE_ID_OBSOLETE "/out:$obsoleteTestExe" /reference:System.Web.Extensions.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /reference:System.Runtime.Serialization.dll /reference:System.Xml.dll (Join-Path $PSScriptRoot 'src\Shared.cs') (Join-Path $PSScriptRoot 'src\DesktopServices.cs') (Join-Path $PSScriptRoot 'src\RuntimePlugin.cs') (Join-Path $PSScriptRoot 'tests\UnityStubs.cs') (Join-Path $PSScriptRoot 'tests\RuntimeTests.cs')
+if ($LASTEXITCODE -ne 0) { throw 'Deprecated Unity ID API compatibility compilation failed' }
+& $obsoleteTestExe | Tee-Object -FilePath (Join-Path $PSScriptRoot 'test-output\runtime-obsolete-id-tests.txt')
+if ($LASTEXITCODE -ne 0) { throw 'Deprecated Unity ID API runtime simulation failed' }
