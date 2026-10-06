@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -35,6 +35,7 @@ namespace MosaicToolkit
         private DateTime syncedProfileStamp;
         private readonly CheckBox autoDiscover = new CheckBox();
         private readonly CheckBox backupChanges = new CheckBox();
+        private readonly CheckBox backgroundRun = new CheckBox();
         private bool syncingAuto;
         private string pending, lastSession, lastMessage, lastReadError, lastConnectionReason;
         private DateTime pendingSince;
@@ -43,7 +44,7 @@ namespace MosaicToolkit
 
         public MainForm()
         {
-            Text = "Mosaic Toolkit 0.1.10 · Unity 遮罩检查工具";
+            Text = "Mosaic Toolkit 0.1.11 · Unity 遮罩检查工具";
             Font = new Font("Microsoft YaHei UI", 9F);
             BackColor = Color.FromArgb(244, 247, 250); ForeColor = Color.FromArgb(32, 49, 66);
             ClientSize = new Size(1180, 790); MinimumSize = new Size(950, 690);
@@ -54,7 +55,7 @@ namespace MosaicToolkit
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(18), ColumnCount = 1, RowCount = 7 };
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 47));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 63));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 91));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 43));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 53));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -71,7 +72,12 @@ namespace MosaicToolkit
             choose.Controls.Add(FillButton("检测", delegate { DetectGame(); }), 2, 0);
             root.Controls.Add(choose, 0, 1);
             detection.Dock = DockStyle.Fill; detection.Text = "选择真正的游戏 EXE。第一版支持 BepInEx 5 / Mono；IL2CPP 仅识别。";
-            detection.Padding = new Padding(2, 4, 0, 0); root.Controls.Add(detection, 0, 2);
+            detection.Padding = new Padding(2, 4, 0, 0);
+            var gameSettings = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty };
+            backgroundRun.Text = "连接工具时允许游戏后台运行（默认开启）";
+            backgroundRun.Checked = true; backgroundRun.Dock = DockStyle.Bottom; backgroundRun.Height = 28;
+            backgroundRun.CheckedChanged += delegate { if (!syncingAuto) { try { SetBackgroundPreference(); } catch (Exception e) { RefreshRules(); Error(e); } } };
+            gameSettings.Controls.Add(detection); gameSettings.Controls.Add(backgroundRun); root.Controls.Add(gameSettings, 0, 2);
             var operations = Flow();
             operations.Controls.Add(Button("安装扫描插件", async delegate { try { await InstallScanner(); } catch (Exception e) { Error(e); } }, true));
             operations.Controls.Add(Button("生成并启用默认规则", delegate { GenerateDefaults(); }, true));
@@ -415,6 +421,14 @@ namespace MosaicToolkit
             DesktopServices.SaveProfile(game, next); profile = next; RefreshRules();
             Log(next.backupBeforeChanges ? "已开启操作前备份，保存在：" + Path.Combine(game.WorkDir, "backups") : "已关闭操作前备份。");
         }
+        private void SetBackgroundPreference()
+        {
+            NeedGame();
+            var next = DesktopServices.Json.Deserialize<Profile>(DesktopServices.Encode(profile));
+            next.backgroundWhileConnected = backgroundRun.Checked;
+            DesktopServices.SaveProfile(game, next); profile = next; RefreshRules();
+            Log(backgroundRun.Checked ? "已允许连接期间后台运行。若游戏已经暂停，请切回游戏一次；需要 0.1.11 扫描插件。" : "已关闭后台运行适配，等待游戏恢复原来的设置。");
+        }
         private void SetAutoDiscovery()
         {
             NeedGame();
@@ -455,7 +469,7 @@ namespace MosaicToolkit
             rules.ClearSelection();
             foreach (DataGridViewRow row in rules.Rows) row.Selected = selected.Contains(((Rule)row.Tag).Key());
             if (scroll >= 0 && scroll < rules.Rows.Count) rules.FirstDisplayedScrollingRowIndex = scroll;
-            syncingAuto = true; autoDiscover.Checked = profile.autoDiscover; backupChanges.Checked = profile.backupBeforeChanges; syncingAuto = false;
+            syncingAuto = true; autoDiscover.Checked = profile.autoDiscover; backupChanges.Checked = profile.backupBeforeChanges; backgroundRun.Checked = profile.backgroundWhileConnected != false; syncingAuto = false;
             ruleStatus.Text = "共 " + profile.rules.Length + " 条规则；自动执行：" + (profile.applyRules ? "启用" : "停用") + "。误匹配项可停用或移除。\r\n" + (profile.autoDiscover ? "扫描完成后自动追加；已停用和已删除的规则不会自动恢复。" : "自动补充已关闭；已有规则保持不变。");
         }
         private void RemoveRules()
@@ -478,7 +492,7 @@ namespace MosaicToolkit
                 if (d.ShowDialog(this) != DialogResult.OK) return;
                 var p = DesktopServices.Read<Profile>(d.FileName); Protocol.Validate(p);
                 if (!Confirm("将导入 " + p.rules.Length + " 条规则并替换当前规则列表。自动执行保持停用。")) return;
-                p.backupBeforeChanges = profile.backupBeforeChanges; p.applyRules = false; p.autoDiscover = false;
+                p.backupBeforeChanges = profile.backupBeforeChanges; p.backgroundWhileConnected = profile.backgroundWhileConnected; p.applyRules = false; p.autoDiscover = false;
                 DesktopServices.SaveProfile(game, p, true); profile = p; keywords.Text = String.Join(", ", p.keywords); RefreshRules();
             }
         }
@@ -502,7 +516,7 @@ namespace MosaicToolkit
             try
             {
                 string sessionDirectory = Path.GetDirectoryName(game.SnapshotPath);
-                if (Directory.Exists(sessionDirectory)) File.WriteAllText(Path.Combine(sessionDirectory, "viewer.heartbeat"), "0.1.7");
+                if (Directory.Exists(sessionDirectory)) File.WriteAllText(Path.Combine(sessionDirectory, "viewer.heartbeat"), "0.1.11");
                 if (snapshotRead != null && snapshotRead.IsCompleted)
                 {
                     var completed = snapshotRead; snapshotRead = null;
@@ -523,7 +537,8 @@ namespace MosaicToolkit
                 SyncProfile();
                 bool live = DesktopServices.Live(game, s);
                 connection.Text = !live ? DesktopServices.DiagnoseConnection(game, s) :
-                    "已连接  |  扫描 " + s.rendererCount + " 个 Renderer  |  候选 " + s.candidateCount + "  |  自动规则 " + (s.applyRules ? "开启" : "关闭") + (s.truncated ? "  |  仅显示前 1500 项，请缩小关键词" : "");
+                    "已连接  |  扫描 " + s.rendererCount + " 个 Renderer  |  候选 " + s.candidateCount + "  |  自动规则 " + (s.applyRules ? "开启" : "关闭") + (s.truncated ? "  |  仅显示前 1500 项，请缩小关键词" : "") +
+                    (s.features < 5 && backgroundRun.Checked ? "  |  后台适配需重新安装 0.1.11 插件" : s.backgroundRunActive ? "  |  后台运行适配已生效" : "");
                 if (!live && connection.Text != lastConnectionReason) { lastConnectionReason = connection.Text; Log(connection.Text); }
                 if (live) lastConnectionReason = null;
                 if (!live) SuspendSnapshot(connection.Text);

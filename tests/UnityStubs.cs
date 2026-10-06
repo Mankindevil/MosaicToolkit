@@ -76,6 +76,7 @@ namespace UnityEngine
         { scans++; var list = new List<T>(); foreach (Renderer r in world) if (r != null) list.Add((T)(Object)r); return list.ToArray(); }
     }
     public static class Time { public static float realtimeSinceStartup; }
+    public static class Application { public static bool runInBackground; }
 }
 namespace UnityEngine.SceneManagement
 {

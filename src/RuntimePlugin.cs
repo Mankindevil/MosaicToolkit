@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 
 namespace MosaicToolkit
 {
-    [BepInPlugin("local.mosaictoolkit.scanner", "Mosaic Toolkit Scanner", "0.1.10")]
+    [BepInPlugin("local.mosaictoolkit.scanner", "Mosaic Toolkit Scanner", "0.1.11")]
     [DefaultExecutionOrder(32000)]
     public sealed class RuntimePlugin : BaseUnityPlugin
     {
@@ -37,6 +37,7 @@ namespace MosaicToolkit
         private int publishing;
         private volatile string publishError;
         private bool viewer;
+        private bool backgroundOwned, originalBackground;
         private Profile profile = new Profile();
         private string directory, session, executable, ack = "", message = "扫描插件已启动，只读发现模式。";
         private int pid, rendererCount, candidateCount;
@@ -52,7 +53,8 @@ namespace MosaicToolkit
             using (Process process = Process.GetCurrentProcess()) { pid = process.Id; executable = process.MainModule.FileName; }
             LoadProfile();
             ready = true;
-            Logger.LogInfo("Mosaic Toolkit Scanner 0.1.10 ready; session=" + session + "; auto rules=" + profile.applyRules + "; temporary material slots supported");
+            UpdateBackground(ViewerPresent());
+            Logger.LogInfo("Mosaic Toolkit Scanner 0.1.11 ready; session=" + session + "; auto rules=" + profile.applyRules + "; temporary material slots supported");
         }
         private string ProfilePath { get { return Path.Combine(Path.GetDirectoryName(directory), "profile.json"); } }
         private void PersistProfile(Profile current)
@@ -80,6 +82,36 @@ namespace MosaicToolkit
         }
         private void OnSceneLoaded(Scene s, LoadSceneMode m) { CancelScan(); nextScan = 0; }
         private void BeforeCamera(ScriptableRenderContext context, Camera camera) { if (ready) Enforce(); }
+        private bool ViewerPresent()
+        {
+            string path = Path.Combine(directory, "viewer.heartbeat");
+            double age = (DateTime.UtcNow - File.GetLastWriteTimeUtc(path)).TotalSeconds;
+            return File.Exists(path) && age >= -2 && age < 6;
+        }
+        private void UpdateBackground(bool connected)
+        {
+            // Unity APIs must stay on the game thread. The heartbeat is only a lease;
+            // exported rules alone must never force the game to run in the background.
+            if (connected && profile.backgroundWhileConnected != false)
+            {
+                if (!backgroundOwned) { originalBackground = Application.runInBackground; backgroundOwned = true; }
+                Application.runInBackground = true;
+            }
+            else RestoreBackground();
+        }
+        private void RestoreBackground()
+        {
+            if (!backgroundOwned) return;
+            Application.runInBackground = originalBackground;
+            backgroundOwned = false;
+        }
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!ready) return;
+            // Acquire before the first unfocused frame can be paused by Unity.
+            try { LoadProfile(); UpdateBackground(ViewerPresent()); }
+            catch (Exception e) { Logger.LogWarning("后台运行设置更新失败: " + e.Message); }
+        }
         private void LateUpdate()
         {
             if (!ready) return;
@@ -91,8 +123,8 @@ namespace MosaicToolkit
                     nextPoll = now + 0.2f;
                     LoadProfile();
                     ReadCommand();
-                    bool connected = File.Exists(Path.Combine(directory, "viewer.heartbeat")) &&
-                        (DateTime.UtcNow - File.GetLastWriteTimeUtc(Path.Combine(directory, "viewer.heartbeat"))).TotalSeconds < 6;
+                    bool connected = ViewerPresent();
+                    UpdateBackground(connected);
                     if (connected && !viewer) nextScan = nextSnapshot = 0;
                     viewer = connected;
                     if (publishError != null) { Logger.LogWarning(publishError); publishError = null; }
@@ -453,7 +485,7 @@ namespace MosaicToolkit
             if (allTruncated) all.RemoveRange(10000, all.Count - 10000);
             var snapshot = new Snapshot { session = session, pid = pid, executable = executable,
                 utc = DateTime.UtcNow.ToString("o"), rendererCount = rendererCount, candidateCount = candidateCount,
-                applyRules = profile.applyRules, truncated = truncated, allTruncated = allTruncated, ack = ack, message = message, candidates = list.ToArray(), renderers = all.ToArray(), features = 4, scanComplete = scanComplete, autoDiscover = profile.autoDiscover };
+                applyRules = profile.applyRules, truncated = truncated, allTruncated = allTruncated, ack = ack, message = message, candidates = list.ToArray(), renderers = all.ToArray(), features = 5, backgroundRunActive = backgroundOwned && Application.runInBackground, scanComplete = scanComplete, autoDiscover = profile.autoDiscover };
             Protocol.ValidateSnapshot(snapshot);
             string outputPath = Path.Combine(directory, "snapshot.json");
             ThreadPool.QueueUserWorkItem(delegate
@@ -469,9 +501,9 @@ namespace MosaicToolkit
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
             RenderPipelineManager.beginCameraRendering -= BeforeCamera;
-            RestoreAll(); ready = false;
+            RestoreBackground(); RestoreAll(); ready = false;
         }
         // Awake is not called again if the component is manually re-enabled.
-        private void OnDestroy() { RestoreAll(); if (hiddenMaterial != null) UnityEngine.Object.Destroy(hiddenMaterial); }
+        private void OnDestroy() { RestoreBackground(); RestoreAll(); if (hiddenMaterial != null) UnityEngine.Object.Destroy(hiddenMaterial); }
     }
 }

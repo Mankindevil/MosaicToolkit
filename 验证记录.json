@@ -1,12 +1,12 @@
 {
   "name": "Mosaic Toolkit",
-  "version": "0.1.10",
-  "scannerVersion": "0.1.10",
+  "version": "0.1.11",
+  "scannerVersion": "0.1.11",
   "createdDate": "2026-10-06",
-  "desktopProtocolTests": 49,
-  "winFormsTests": 55,
-  "runtimeSimulationTests": 62,
-  "obsoleteApiRuntimeChecks": 62,
+  "desktopProtocolTests": 54,
+  "winFormsTests": 58,
+  "runtimeSimulationTests": 73,
+  "obsoleteApiRuntimeChecks": 73,
   "targetCompile": [
     "KokugaNoTeki - Unity 6000.4.7f1",
     "Dungeon of Meat DLsite v1.05",
@@ -14,11 +14,12 @@
   ],
   "inGameTested": false,
   "installedToUserGame": false,
-  "uiPreviewInheritedFrom": "0.1.9 - UI functionality unchanged",
+  "uiPreview": "test-output/preview-0.1.11.png - inspected",
   "changes": [
-    "Narrow CS0618 suppression for retained legacy Unity instance ID API",
-    "Maintain warnings-as-errors elsewhere and legacy Unity compatibility",
-    "Deprecated API regression compilation and runtime simulation"
+    "Default-on per-game background preference with optional legacy JSON member",
+    "Main-thread runInBackground lease while viewer heartbeat is fresh; acquire on focus transition",
+    "Restore original background setting on opt-out, expired heartbeat, disable or destroy",
+    "Separate stale snapshot from exited/mismatched process without weakening stale operation guard"
   ],
-  "sha256": "90749301C908639A193887E03C271033B7CF10ED6B53F92D5A476F6F17ABC163"
+  "sha256": "D573AECC682FFFE502996966F638DC940B2BF7F01E1177800EEFA0B0901634E1"
 }

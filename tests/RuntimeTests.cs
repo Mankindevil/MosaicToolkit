@@ -68,6 +68,7 @@ class RuntimeTests
         Tick(1);
         Check(state.candidateCount == 4 && target.enabled && inactive.enabled && shaderOnly.enabled && !off.enabled, "read-only startup finds names shaders and inactive objects without mutation");
         Check(DesktopServices.Live(game, state), "runtime snapshot passes desktop process/session validation");
+        Check(Application.runInBackground && state.backgroundRunActive && state.features >= 5, "viewer enables background running by default and reports active adaptation");
         Protocol.ValidateSnapshot(state);
         Check(state.rendererCount == 5 && state.renderers.Length == 5 && Array.Exists(state.renderers, c => c.id == body.id) && !Array.Exists(state.candidates, c => c.id == body.id), "all-renderer catalog includes ordinary objects independently of keywords");
         Check(Array.Exists(state.renderers, c => c.id == inactive.id && !c.active) && !Array.Exists(state.renderers, c => c.id == asset.id), "catalog includes inactive scene renderers and excludes unloaded assets");
@@ -119,6 +120,7 @@ class RuntimeTests
         DateTime snapshotWritten = File.GetLastWriteTimeUtc(game.SnapshotPath);
         Time.realtimeSinceStartup = 10f; Set("nextSnapshot", 0f); Call("LateUpdate"); WaitWriter();
         Check(!(bool)Get("viewer") && File.GetLastWriteTimeUtc(game.SnapshotPath) == snapshotWritten, "expired desktop heartbeat stops full snapshot serialization and writes");
+        Check(!Application.runInBackground, "expired viewer restores originally paused background behavior");
         var offlineSpawn = Add("モザイク_1", "Shader Graphs/URPMosaic");
         Time.realtimeSinceStartup = 14f; Call("LateUpdate"); DrainScan();
         Check(!offlineSpawn.enabled, "saved rules keep discovering and controlling new objects without desktop viewer");
@@ -224,6 +226,26 @@ class RuntimeTests
         SendMaterial("slotsOff", forest, 3); Tick(48f); Call("OnDisable");
         Check(forest.sharedMaterials[3] == forestB, "plugin disable restores manually hidden material slots");
         Call("OnDisable");
+        Check(!Application.runInBackground, "disable releases background lease");
+        Save(new Profile { backgroundWhileConnected = false });
+        File.WriteAllText(heartbeat, "test"); Call("OnEnable"); Tick(50f);
+        Check(!Application.runInBackground, "explicit opt-out leaves background pause unchanged with a live viewer");
+        Save(new Profile()); Tick(51f);
+        Check(Application.runInBackground, "live preference reload enables background adaptation");
+        Save(new Profile { backgroundWhileConnected = false }); Tick(52f);
+        Check(!Application.runInBackground, "turning preference off restores original value");
+        Application.runInBackground = true; Save(new Profile()); Tick(53f);
+        File.SetLastWriteTimeUtc(heartbeat, DateTime.UtcNow.AddMinutes(-1)); Tick(54f);
+        Check(Application.runInBackground, "viewer departure preserves games that already ran in background");
+        Application.runInBackground = false; Tick(55f);
+        Check(!Application.runInBackground, "standalone plugin without viewer never forces background running");
+        File.WriteAllText(heartbeat, "test");
+        typeof(RuntimePlugin).GetMethod("OnApplicationFocus", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(plugin, new object[] { false });
+        Check(Application.runInBackground, "focus-loss callback acquires lease before Unity can pause frames");
+        UnityEngine.SceneManagement.SceneManager.Load(); Tick(56f);
+        Check(Application.runInBackground, "scene transition preserves active background lease");
+        Call("OnDestroy");
+        Check(!Application.runInBackground, "destroy restores background setting even without OnDisable");
         Console.WriteLine("Passed " + passed + " runtime/IPC simulation checks. Unity itself was not executed.");
     }
 }

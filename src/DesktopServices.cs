@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -106,16 +106,21 @@ namespace MosaicToolkit
             if (!DateTime.TryParse(s.utc, null, System.Globalization.DateTimeStyles.RoundtripKind, out utc)) return false;
             double seconds = (DateTime.UtcNow - utc.ToUniversalTime()).TotalSeconds;
             if (seconds < -2 || seconds > 5) return false;
+            return SnapshotProcessMatches(g, s);
+        }
+        public static bool SnapshotProcessMatches(GameInfo g, Snapshot s)
+        {
+            if (s == null || !String.Equals(s.executable, g.exe, StringComparison.OrdinalIgnoreCase)) return false;
             try { using (var p = Process.GetProcessById(s.pid)) return !p.HasExited && String.Equals(p.MainModule.FileName, g.exe, StringComparison.OrdinalIgnoreCase); }
             catch { return false; }
         }
         public static string ConnectionReason(bool installed, bool running, bool hasSnapshot, bool scannerReady, bool? hideManager)
         {
             if (!installed) return "未安装扫描插件：退出游戏后，点击“安装扫描插件”。";
-            if (!running) return "游戏尚未运行：启动所选游戏并进入目标场景。";
+            if (!running) return "游戏尚未运行或已退出：启动所选游戏并进入目标场景。";
             if (scannerReady && hideManager == false)
                 return "插件已加载但未更新：请退出游戏，将 BepInEx.cfg 的 HideManagerGameObject 改为 true 后重启。";
-            if (hasSnapshot) return "连接快照已过期或进程不匹配：回到游戏窗口等待更新；仍无效时查看游戏日志。";
+            if (hasSnapshot) return "游戏仍在运行，扫描数据已过期：可能在后台暂停或正在加载。请切回游戏几秒；可开启上方后台运行适配。";
             if (scannerReady) return "插件已启动但未生成快照：回到游戏窗口；仍无效时查看日志中的插件错误。";
             return "游戏运行中，未发现扫描插件启动记录：请检查游戏日志和安装目录。";
         }
@@ -139,6 +144,10 @@ namespace MosaicToolkit
                     { string text = r.ReadToEnd(); ready = text.Contains("Mosaic Toolkit Scanner") && text.Contains("ready; session="); }
                 }
             }
+            if (Installed(g) && running && snapshot != null && !SnapshotProcessMatches(g, snapshot))
+                return "游戏仍在运行，但快照属于其他或已结束的进程；等待当前游戏插件生成新数据。";
+            if (Installed(g) && running && snapshot != null && (snapshot.protocol != 1 || String.IsNullOrEmpty(snapshot.session)))
+                return "快照协议或会话无效，请重新安装当前版本扫描插件。";
             return ConnectionReason(Installed(g), running, snapshot != null, ready, hide);
         }
         public static Profile LoadProfile(GameInfo g)
@@ -245,12 +254,12 @@ namespace MosaicToolkit
             File.WriteAllText(Path.Combine(plugin, "toolkit-owner.txt"), Owner);
             Protocol.AtomicWrite(Path.Combine(plugin, "profile.json"), Encode(p));
             Protocol.AtomicWrite(Path.Combine(output, "MosaicToolkit", "profile.json"), Encode(p));
-            var manifest = new { toolkit = "0.1.10", scanner = "0.1.10", gameExe = g.exe, unity = g.unity, runtime = g.runtime, architecture = g.arch,
+            var manifest = new { toolkit = "0.1.11", scanner = "0.1.11", gameExe = g.exe, unity = g.unity, runtime = g.runtime, architecture = g.arch,
                 loader = g.loader, pluginSha256 = Sha(Path.Combine(plugin, "MosaicToolkit.Scanner.dll")), ruleCount = p.rules.Length,
                 applyRules = p.applyRules, gameExeSha256 = Sha(g.exe), inGameValidated = false };
             File.WriteAllText(Path.Combine(output, "manifest.json"), Encode(manifest), Encoding.UTF8);
             File.WriteAllText(Path.Combine(output, "安装说明.txt"),
-                "Mosaic Toolkit 0.1.10 / Scanner 0.1.10 / BepInEx 5 Mono\r\n目标游戏: " + g.exe +
+                "Mosaic Toolkit 0.1.11 / Scanner 0.1.11 / BepInEx 5 Mono\r\n目标游戏: " + g.exe +
                 "\r\n退出游戏，将 BepInEx 文件夹合并到游戏根目录。需要已有 BepInEx 5。\r\n" +
                 "自动规则: " + p.applyRules + "；规则数: " + p.rules.Length +
                 "\r\n按规则关闭独立 Renderer 或隐藏命中的材质槽。动态对象约每 5 秒发现一次，可能短暂显示。\r\n" +

@@ -164,6 +164,11 @@ namespace MosaicToolkit
                     InvokeForm(form, "GenerateDefaults");
                     Check(((Profile)Field(form, "profile")).rules.Length == 1, "manual generation also respects removed-rule exclusion");
                     Check(!((CheckBox)Field(form, "backupChanges")).Checked && !Directory.Exists(Path.Combine(fixtureGame.WorkDir, "backups")), "backup checkbox defaults off and generation creates no backups");
+                    Check(((CheckBox)Field(form, "backgroundRun")).Checked, "background adaptation defaults on for existing profiles");
+                    ((CheckBox)Field(form, "backgroundRun")).Checked = false;
+                    Check(DesktopServices.LoadProfile(fixtureGame).backgroundWhileConnected == false, "background opt-out persists per game");
+                    ((CheckBox)Field(form, "backgroundRun")).Checked = true;
+                    Check(DesktopServices.LoadProfile(fixtureGame).backgroundWhileConnected == true, "background opt-in persists without a live connection");
                     ((CheckBox)Field(form, "backupChanges")).Checked = true;
                     Check(DesktopServices.LoadProfile(fixtureGame).backupBeforeChanges && Directory.GetFiles(Path.Combine(fixtureGame.WorkDir, "backups"), "*.json").Length == 1, "enabling backups persists game preference and preserves prior rules");
                     ((CheckBox)Field(form, "backupChanges")).Checked = false;
@@ -208,6 +213,18 @@ namespace MosaicToolkit
                 Check(DesktopServices.ConnectionReason(false, true, false, false, false).Contains("未安装"), "missing scanner is distinguished from compatibility failure");
                 Check(DesktopServices.ConnectionReason(true, false, true, true, false).Contains("尚未运行"), "old startup logs do not imply current running game");
                 Check(DesktopServices.ConnectionReason(true, true, true, true, true).Contains("过期"), "stale snapshot diagnosed separately");
+                Check(DesktopServices.ConnectionReason(true, true, true, true, true).Contains("游戏仍在运行"), "stale data is not described as game process exit");
+                string legacyProfile = JsonCodec.Write(new Profile()).Replace("\"backgroundWhileConnected\":null,", "");
+                Check(!legacyProfile.Contains("backgroundWhileConnected") && JsonCodec.Read<Profile>(legacyProfile).backgroundWhileConnected == null, "legacy profile missing preference retains default-on semantics");
+                Check(JsonCodec.Read<Profile>(JsonCodec.Write(new Profile { backgroundWhileConnected = false })).backgroundWhileConnected == false, "background opt-out survives runtime serialization");
+                using (var current = System.Diagnostics.Process.GetCurrentProcess())
+                {
+                    var currentGame = new GameInfo { exe = current.MainModule.FileName };
+                    var oldState = new Snapshot { pid = current.Id, executable = currentGame.exe, session = "test", utc = DateTime.UtcNow.AddSeconds(-30).ToString("o") };
+                    Check(DesktopServices.SnapshotProcessMatches(currentGame, oldState) && !DesktopServices.Live(currentGame, oldState), "live process with stale data is distinguished without weakening operation guard");
+                    oldState.pid = -1;
+                    Check(!DesktopServices.SnapshotProcessMatches(currentGame, oldState), "exited snapshot process fails identity check");
+                }
                 Check(Protocol.KeywordEvidence(p, "モザイク_1", new string[0], new string[0]) != "", "Japanese candidate discovery");
                 Check(Protocol.KeywordEvidence(p, "Mesh", new[] { "CENSOR_mat" }, new string[0]) != "", "case-insensitive material discovery");
                 Check(Protocol.KeywordEvidence(p, "Body", new string[0], new[] { "Shader Graphs/URPMosaic" }) != "", "shader discovery");

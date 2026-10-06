@@ -92,6 +92,9 @@ namespace MosaicToolkit
         public bool applyRules = false;
         public bool autoDiscover;
         public bool backupBeforeChanges;
+        // Missing in older profiles: enable compatibility while a viewer is present.
+        [System.Runtime.Serialization.OptionalField]
+        public bool? backgroundWhileConnected;
         public string[] blockedRuleKeys = new string[0];
         public string[] keywords = new string[] { "mosaic", "モザ", "censor" };
         public Rule[] rules = new Rule[0];
@@ -131,6 +134,8 @@ namespace MosaicToolkit
         public Candidate[] candidates = new Candidate[0];
         public Candidate[] renderers = new Candidate[0];
         public int features;
+        [System.Runtime.Serialization.OptionalField]
+        public bool backgroundRunActive;
         public bool scanComplete;
         public bool autoDiscover;
     }
